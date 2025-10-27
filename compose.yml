@@ -1,0 +1,65 @@
+services:
+  mysql:
+    image: mysql:latest
+    restart: on-failure:3
+    env_file:
+      - .env
+    environment:
+      - MYSQL_ROOT_PASSWORD=${ROOT_PASSWORD}
+      - MYSQL_DATABASE=${DB_NAME}
+    volumes:
+      - gnutecshop_dbv:/var/lib/mysql
+    networks:
+      - gnutecshop
+    ports:
+      - "3306:3306"
+    container_name: gnutec_wpdb
+    healthcheck:
+      test: ["CMD", "mysql", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: on-failure:3
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOST=mysql
+      - PMA_PORT=3306
+    networks:
+      - gnutecshop
+    ports:
+      - "8081:80"
+    container_name: phpmyadmin
+
+  wordpress:
+    image: wordpress:latest
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: on-failure:3
+    env_file:
+      - .env
+    environment:
+      - WORDPRESS_DB_HOST=mysql
+      - WORDPRESS_DB_USER=root
+      - WORDPRESS_DB_PASSWORD=${ROOT_PASSWORD}
+      - WORDPRESS_DB_NAME=${DB_NAME}
+      - WORDPRESS_TABLE_PREFIX=wp_
+    volumes:
+      - ./src/:/var/www/html
+    networks:
+      - gnutecshop
+    ports:
+      - "8080:80"
+    container_name: gnutec_wordpress
+
+volumes:
+  gnutecshop_dbv:
+
+networks:
+  gnutecshop:
